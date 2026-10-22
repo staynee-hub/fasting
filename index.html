@@ -7,41 +7,47 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Fast">
-<meta name="theme-color" content="#F7F3EE" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#1C1610" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#FBF8FD" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1D1925" media="(prefers-color-scheme: dark)">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" type="image/png" href="icon-192.png">
 <title>Fast Tracker</title>
 <style>
   :root {
-    --bg: #F7F3EE;
+    --bg: #FBF8FD;
     --surface: #FFFFFF;
-    --surface2: #EFE9E0;
-    --text: #3A2C1E;
-    --muted: #8A7560;
-    --accent: #B85C38;
-    --accent-soft: #F2E0D8;
-    --good: #4E7A4A;
-    --good-soft: #DCF0D8;
-    --track: #E5DDD0;
-    --border: rgba(122,98,72,0.18);
-    --shadow: 0 2px 10px rgba(58,44,30,0.08);
-    --radius: 16px;
+    --surface2: #F4EFF9;
+    --text: #3F3651;
+    --muted: #776C8A;
+    --accent: #C3B1F0;      /* lavender: ring, bars, Start button */
+    --accent-ink: #6A52B5;  /* readable lavender for text and links */
+    --accent-soft: #EFE8FC;
+    --on-accent: #2F2547;   /* text on pastel buttons */
+    --stop: #F7C9D8;        /* blush: End button */
+    --good: #A6DCC4;        /* mint: goal reached */
+    --good-soft: #E3F5EC;
+    --track: #EEE8F5;
+    --border: rgba(106,82,181,0.12);
+    --shadow: 0 4px 18px rgba(106,82,181,0.08);
+    --radius: 22px;
   }
   @media (prefers-color-scheme: dark) {
     :root {
-      --bg: #1C1610;
-      --surface: #2A2219;
-      --surface2: #352B20;
-      --text: #F2EADF;
-      --muted: #B3A08A;
-      --accent: #E07B52;
-      --accent-soft: #4A2E22;
-      --good: #8FBF85;
-      --good-soft: #263A24;
-      --track: #3E3326;
-      --border: rgba(242,234,223,0.12);
+      --bg: #1D1925;
+      --surface: #28222F;
+      --surface2: #332C3D;
+      --text: #F2EDF8;
+      --muted: #B3A9C4;
+      --accent: #C9B8F3;
+      --accent-ink: #CDBEF6;
+      --accent-soft: #3A3152;
+      --on-accent: #251D37;
+      --stop: #F2BFD0;
+      --good: #A9E2CA;
+      --good-soft: #263A30;
+      --track: #3A3347;
+      --border: rgba(242,237,248,0.10);
       --shadow: none;
     }
   }
@@ -79,26 +85,26 @@
   .ring-sub { font-size: 14px; color: var(--muted); }
 
   .primary {
-    display: block; width: 100%; padding: 18px; border-radius: 14px;
-    background: var(--accent); color: #fff; font-size: 18px; font-weight: 600;
+    display: block; width: 100%; padding: 18px; border-radius: 999px;
+    background: var(--accent); color: var(--on-accent); font-size: 18px; font-weight: 600;
   }
-  .primary.stop { background: var(--text); color: var(--bg); }
+  .primary.stop { background: var(--stop); color: var(--on-accent); }
   .primary:active { opacity: 0.85; }
 
   .goals { display: flex; gap: 8px; overflow-x: auto; padding: 2px; margin-bottom: 16px; scrollbar-width: none; }
   .goals::-webkit-scrollbar { display: none; }
   .goal {
-    flex: 0 0 auto; padding: 10px 14px; border-radius: 12px;
+    flex: 0 0 auto; padding: 10px 16px; border-radius: 999px;
     background: var(--surface); border: 1px solid var(--border); font-size: 15px; font-weight: 500;
   }
-  .goal.active { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
+  .goal.active { background: var(--accent-soft); border-color: var(--accent); color: var(--accent-ink); }
 
   .meta { display: grid; grid-template-columns: 1fr 1fr; margin-top: 16px; }
   .meta > div { padding: 14px 16px; }
   .meta > div + div { border-left: 1px solid var(--border); }
   .meta .k { font-size: 13px; color: var(--muted); }
   .meta .v { font-size: 17px; font-weight: 600; margin-top: 2px; }
-  .link { color: var(--accent); font-size: 15px; font-weight: 500; padding: 12px; display: block; margin: 8px auto 0; }
+  .link { color: var(--accent-ink); font-size: 15px; font-weight: 500; padding: 12px; display: block; margin: 8px auto 0; }
 
   /* ── Dashboard ── */
   .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
@@ -128,7 +134,7 @@
   .empty { padding: 28px 16px; text-align: center; color: var(--muted); font-size: 15px; }
 
   .tools { display: flex; gap: 10px; margin-top: 8px; }
-  .tools button { flex: 1; padding: 12px; border-radius: 12px; background: var(--surface); border: 1px solid var(--border); font-size: 15px; font-weight: 500; }
+  .tools button { flex: 1; padding: 12px; border-radius: 999px; background: var(--surface); border: 1px solid var(--border); font-size: 15px; font-weight: 500; }
 
   /* ── Tab bar ── */
   nav {
@@ -140,7 +146,7 @@
     padding-bottom: env(safe-area-inset-bottom);
   }
   nav button { flex: 0 1 200px; padding: 8px 0 6px; display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 11px; font-weight: 500; color: var(--muted); }
-  nav button.active { color: var(--accent); }
+  nav button.active { color: var(--accent-ink); }
   nav svg { width: 26px; height: 26px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 
   /* ── Sheet (edit dialog) ── */
@@ -157,11 +163,11 @@
     width: 100%; padding: 12px; border-radius: 10px; border: 1px solid var(--border);
     background: var(--surface2); color: var(--text); font: inherit; font-size: 16px;
   }
-  .err { color: var(--accent); font-size: 14px; min-height: 20px; margin: 10px 4px 0; }
+  .err { color: var(--accent-ink); font-size: 14px; min-height: 20px; margin: 10px 4px 0; }
   .sheet-actions { display: flex; gap: 10px; margin-top: 12px; }
   .sheet-actions button { flex: 1; padding: 14px; border-radius: 12px; font-weight: 600; background: var(--surface2); }
-  .sheet-actions .save { background: var(--accent); color: #fff; }
-  .danger { color: var(--accent); font-weight: 500; padding: 14px; width: 100%; margin-top: 6px; }
+  .sheet-actions .save { background: var(--accent); color: var(--on-accent); }
+  .danger { color: var(--accent-ink); font-weight: 500; padding: 14px; width: 100%; margin-top: 6px; }
 </style>
 </head>
 <body>
