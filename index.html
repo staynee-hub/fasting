@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Fast">
+<meta name="theme-color" content="#F7F3EE" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1C1610" media="(prefers-color-scheme: dark)">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" type="image/png" href="icon-192.png">
+<title>Fast Tracker</title>
+<style>
+  :root {
+    --bg: #F7F3EE;
+    --surface: #FFFFFF;
+    --surface2: #EFE9E0;
+    --text: #3A2C1E;
+    --muted: #8A7560;
+    --accent: #B85C38;
+    --accent-soft: #F2E0D8;
+    --good: #4E7A4A;
+    --good-soft: #DCF0D8;
+    --track: #E5DDD0;
+    --border: rgba(122,98,72,0.18);
+    --shadow: 0 2px 10px rgba(58,44,30,0.08);
+    --radius: 16px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1C1610;
+      --surface: #2A2219;
+      --surface2: #352B20;
+      --text: #F2EADF;
+      --muted: #B3A08A;
+      --accent: #E07B52;
+      --accent-soft: #4A2E22;
+      --good: #8FBF85;
+      --good-soft: #263A24;
+      --track: #3E3326;
+      --border: rgba(242,234,223,0.12);
+      --shadow: none;
+    }
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
+    font-size: 16px;
+    -webkit-font-smoothing: antialiased;
+    overscroll-behavior-y: none;
+  }
+  button { font: inherit; color: inherit; border: none; background: none; cursor: pointer; }
+  .num { font-variant-numeric: tabular-nums; }
+
+  main {
+    max-width: 520px; margin: 0 auto;
+    padding: calc(env(safe-area-inset-top) + 16px) 16px calc(env(safe-area-inset-bottom) + 96px);
+  }
+  h1 { font-size: 28px; font-weight: 700; letter-spacing: -0.5px; margin-bottom: 16px; }
+  h2 { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.6px; color: var(--muted); margin: 24px 4px 8px; }
+  .card { background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); border: 1px solid var(--border); }
+  .view[hidden] { display: none; }
+
+  /* ── Timer ── */
+  .ring-wrap { position: relative; width: min(78vw, 300px); aspect-ratio: 1; margin: 8px auto 20px; }
+  .ring-wrap svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+  .ring-track { stroke: var(--track); }
+  .ring-fill { stroke: var(--accent); transition: stroke-dashoffset 0.6s ease, stroke 0.3s; }
+  .ring-fill.done { stroke: var(--good); }
+  .ring-center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+  .ring-label { font-size: 14px; color: var(--muted); }
+  .ring-time { font-size: 44px; font-weight: 600; letter-spacing: -1px; margin: 4px 0; }
+  .ring-sub { font-size: 14px; color: var(--muted); }
+
+  .primary {
+    display: block; width: 100%; padding: 18px; border-radius: 14px;
+    background: var(--accent); color: #fff; font-size: 18px; font-weight: 600;
+  }
+  .primary.stop { background: var(--text); color: var(--bg); }
+  .primary:active { opacity: 0.85; }
+
+  .goals { display: flex; gap: 8px; overflow-x: auto; padding: 2px; margin-bottom: 16px; scrollbar-width: none; }
+  .goals::-webkit-scrollbar { display: none; }
+  .goal {
+    flex: 0 0 auto; padding: 10px 14px; border-radius: 12px;
+    background: var(--surface); border: 1px solid var(--border); font-size: 15px; font-weight: 500;
+  }
+  .goal.active { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
+
+  .meta { display: grid; grid-template-columns: 1fr 1fr; margin-top: 16px; }
+  .meta > div { padding: 14px 16px; }
+  .meta > div + div { border-left: 1px solid var(--border); }
+  .meta .k { font-size: 13px; color: var(--muted); }
+  .meta .v { font-size: 17px; font-weight: 600; margin-top: 2px; }
+  .link { color: var(--accent); font-size: 15px; font-weight: 500; padding: 12px; display: block; margin: 8px auto 0; }
+
+  /* ── Dashboard ── */
+  .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .stat { padding: 14px 16px; }
+  .stat .k { font-size: 13px; color: var(--muted); }
+  .stat .v { font-size: 26px; font-weight: 600; letter-spacing: -0.5px; margin-top: 2px; }
+  .stat .v small { font-size: 15px; font-weight: 500; color: var(--muted); margin-left: 2px; }
+
+  .chart { padding: 16px 12px 10px; }
+  .chart svg { width: 100%; height: 160px; display: block; overflow: visible; }
+  .chart .bar { fill: var(--accent); }
+  .chart .bar.hit { fill: var(--good); }
+  .chart .axis { fill: var(--muted); font-size: 11px; }
+  .chart .goal-line { stroke: var(--muted); stroke-dasharray: 3 4; }
+  .legend { display: flex; gap: 14px; font-size: 12px; color: var(--muted); padding: 6px 4px 0; }
+  .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
+
+  .list { overflow: hidden; }
+  .row { display: flex; align-items: center; gap: 12px; width: 100%; padding: 13px 16px; text-align: left; }
+  .row + .row { border-top: 1px solid var(--border); }
+  .row .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--accent); flex-shrink: 0; }
+  .row .dot.hit { background: var(--good); }
+  .row .main { flex: 1; min-width: 0; }
+  .row .t { font-weight: 500; }
+  .row .s { font-size: 13px; color: var(--muted); margin-top: 1px; }
+  .row .d { font-weight: 600; }
+  .empty { padding: 28px 16px; text-align: center; color: var(--muted); font-size: 15px; }
+
+  .tools { display: flex; gap: 10px; margin-top: 8px; }
+  .tools button { flex: 1; padding: 12px; border-radius: 12px; background: var(--surface); border: 1px solid var(--border); font-size: 15px; font-weight: 500; }
+
+  /* ── Tab bar ── */
+  nav {
+    position: fixed; left: 0; right: 0; bottom: 0;
+    display: flex; justify-content: center;
+    background: color-mix(in srgb, var(--bg) 85%, transparent);
+    backdrop-filter: saturate(180%) blur(20px); -webkit-backdrop-filter: saturate(180%) blur(20px);
+    border-top: 1px solid var(--border);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  nav button { flex: 0 1 200px; padding: 8px 0 6px; display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 11px; font-weight: 500; color: var(--muted); }
+  nav button.active { color: var(--accent); }
+  nav svg { width: 26px; height: 26px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+
+  /* ── Sheet (edit dialog) ── */
+  dialog {
+    margin: auto auto 0; width: 100%; max-width: 520px; border: none; padding: 0;
+    background: var(--surface); color: var(--text);
+    border-radius: 20px 20px 0 0;
+  }
+  dialog::backdrop { background: rgba(0,0,0,0.35); }
+  dialog form { padding: 20px 16px calc(env(safe-area-inset-bottom) + 20px); }
+  dialog h3 { font-size: 18px; margin-bottom: 16px; text-align: center; }
+  dialog label { display: block; font-size: 13px; color: var(--muted); margin: 12px 4px 6px; }
+  dialog input {
+    width: 100%; padding: 12px; border-radius: 10px; border: 1px solid var(--border);
+    background: var(--surface2); color: var(--text); font: inherit; font-size: 16px;
+  }
+  .err { color: var(--accent); font-size: 14px; min-height: 20px; margin: 10px 4px 0; }
+  .sheet-actions { display: flex; gap: 10px; margin-top: 12px; }
+  .sheet-actions button { flex: 1; padding: 14px; border-radius: 12px; font-weight: 600; background: var(--surface2); }
+  .sheet-actions .save { background: var(--accent); color: #fff; }
+  .danger { color: var(--accent); font-weight: 500; padding: 14px; width: 100%; margin-top: 6px; }
+</style>
+</head>
+<body>
+<main>
+  <!-- ── Timer view ── -->
+  <section class="view" id="view-timer">
+    <h1>Fast</h1>
+
+    <div class="goals" id="goals" role="radiogroup" aria-label="Fasting goal"></div>
+
+    <div class="ring-wrap">
+      <svg viewBox="0 0 120 120" aria-hidden="true">
+        <circle class="ring-track" cx="60" cy="60" r="52" fill="none" stroke-width="10"/>
+        <circle class="ring-fill" id="ring" cx="60" cy="60" r="52" fill="none" stroke-width="10" stroke-linecap="round"/>
+      </svg>
+      <div class="ring-center">
+        <div class="ring-label" id="ring-label">Not fasting</div>
+        <div class="ring-time num" id="ring-time">00:00:00</div>
+        <div class="ring-sub num" id="ring-sub">&nbsp;</div>
+      </div>
+    </div>
+
+    <button class="primary" id="toggle">Start fast</button>
+
+    <div class="card meta" id="meta" hidden>
+      <div><div class="k">Started</div><div class="v num" id="meta-start"></div></div>
+      <div><div class="k">Goal reached at</div><div class="v num" id="meta-end"></div></div>
+    </div>
+    <button class="link" id="edit-start" hidden>Edit start time</button>
+  </section>
+
+  <!-- ── Dashboard view ── -->
+  <section class="view" id="view-history" hidden>
+    <h1>History</h1>
+
+    <div class="stats">
+      <div class="card stat"><div class="k">Fasts</div><div class="v num" id="st-count">0</div></div>
+      <div class="card stat"><div class="k">Current streak</div><div class="v num" id="st-streak">0</div></div>
+      <div class="card stat"><div class="k">Average</div><div class="v num" id="st-avg">–</div></div>
+      <div class="card stat"><div class="k">Longest</div><div class="v num" id="st-long">–</div></div>
+      <div class="card stat"><div class="k">Goal hit rate</div><div class="v num" id="st-rate">–</div></div>
+      <div class="card stat"><div class="k">Hours (7 days)</div><div class="v num" id="st-week">0</div></div>
+    </div>
+
+    <h2>Last 7 days</h2>
+    <div class="card chart">
+      <svg id="chart" role="img" aria-label="Longest fast per day, last 7 days"></svg>
+      <div class="legend"><span><i style="background:var(--good)"></i>Goal reached</span><span><i style="background:var(--accent)"></i>Short of goal</span></div>
+    </div>
+
+    <h2>All fasts</h2>
+    <div class="card list" id="list"></div>
+
+    <h2>Backup</h2>
+    <div class="tools">
+      <button id="export">Export</button>
+      <button id="import">Import</button>
+      <input type="file" id="import-file" accept="application/json,.json" hidden>
+    </div>
+  </section>
+</main>
+
+<nav>
+  <button class="active" data-view="timer">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M9.5 2h5"/></svg>
+    Timer
+  </button>
+  <button data-view="history">
+    <svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>
+    History
+  </button>
+</nav>
+
+<dialog id="sheet">
+  <form method="dialog" id="sheet-form">
+    <h3 id="sheet-title">Edit fast</h3>
+    <label for="f-start">Start</label>
+    <input type="datetime-local" id="f-start" required>
+    <div id="f-end-wrap">
+      <label for="f-end">End</label>
+      <input type="datetime-local" id="f-end" required>
+    </div>
+    <div class="err" id="f-err"></div>
+    <div class="sheet-actions">
+      <button type="button" id="f-cancel">Cancel</button>
+      <button type="submit" class="save">Save</button>
+    </div>
+    <button type="button" class="danger" id="f-delete">Delete fast</button>
+  </form>
+</dialog>
+
+<script>
+(() => {
+  const STORE_KEY = 'fast-tracker.v1';
+  const HOUR = 3600e3, DAY = 24 * HOUR;
+  const GOALS = [12, 14, 16, 18, 20, 23];
+  const RING_C = 2 * Math.PI * 52;
+
+  // ── State ──────────────────────────────────────────────
+  // { goalHours, active: {start, goalHours} | null, history: [{id, start, end, goalHours}] }
+  function load() {
+    try {
+      const s = JSON.parse(localStorage.getItem(STORE_KEY));
+      if (s && Array.isArray(s.history)) return s;
+    } catch (_) {}
+    return { goalHours: 16, active: null, history: [] };
+  }
+  let state = load();
+  function save() {
+    try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); }
+    catch (e) { alert('Could not save: ' + e.message); }
+  }
+
+  const $ = id => document.getElementById(id);
+  const pad = n => String(n).padStart(2, '0');
+
+  // ── Formatting ─────────────────────────────────────────
+  function clock(ms) {
+    const s = Math.max(0, Math.floor(ms / 1000));
+    return `${pad(Math.floor(s / 3600))}:${pad(Math.floor(s / 60) % 60)}:${pad(s % 60)}`;
+  }
+  function hm(ms) {
+    const m = Math.round(ms / 60e3);
+    return `${Math.floor(m / 60)}h ${pad(m % 60)}m`;
+  }
+  const timeFmt = new Intl.DateTimeFormat(undefined, { hour: 'numeric', minute: '2-digit' });
+  const dayFmt = new Intl.DateTimeFormat(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+  function when(ts) {
+    const d = new Date(ts), today = startOfDay(Date.now());
+    const prefix = d >= today ? 'Today' : d >= today - DAY ? 'Yesterday' : dayFmt.format(d);
+    return `${prefix}, ${timeFmt.format(d)}`;
+  }
+  function startOfDay(ts) { const d = new Date(ts); d.setHours(0, 0, 0, 0); return d.getTime(); }
+  function toInput(ts) {
+    const d = new Date(ts);
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  }
+  function fromInput(v) { const t = new Date(v).getTime(); return Number.isNaN(t) ? null : t; }
+
+  // ── Timer view ─────────────────────────────────────────
+  function renderGoals() {
+    const current = state.active ? state.active.goalHours : state.goalHours;
+    $('goals').innerHTML = GOALS.map(h =>
+      `<button class="goal${h === current ? ' active' : ''}" role="radio" aria-checked="${h === current}" data-h="${h}">${h}:${24 - h}</button>`
+    ).join('');
+  }
+  $('goals').addEventListener('click', e => {
+    const b = e.target.closest('.goal'); if (!b) return;
+    const h = Number(b.dataset.h);
+    state.goalHours = h;
+    if (state.active) state.active.goalHours = h;
+    save(); renderGoals(); tick();
+  });
+
+  function tick() {
+    const a = state.active, ring = $('ring');
+    ring.style.strokeDasharray = RING_C;
+    if (!a) {
+      ring.style.strokeDashoffset = RING_C;
+      ring.classList.remove('done');
+      $('ring-label').textContent = 'Not fasting';
+      $('ring-time').textContent = '00:00:00';
+      $('ring-sub').textContent = `Goal: ${state.goalHours} hours`;
+      return;
+    }
+    const elapsed = Date.now() - a.start, goal = a.goalHours * HOUR;
+    const pct = Math.min(1, elapsed / goal), done = elapsed >= goal;
+    ring.style.strokeDashoffset = RING_C * (1 - pct);
+    ring.classList.toggle('done', done);
+    $('ring-label').textContent = done ? 'Goal reached 🎉' : 'Fasting';
+    $('ring-time').textContent = clock(elapsed);
+    $('ring-sub').textContent = done ? `+${hm(elapsed - goal)} over goal` : `${hm(goal - elapsed)} to go`;
+  }
+
+  function renderTimer() {
+    const a = state.active;
+    renderGoals();
+    $('toggle').textContent = a ? 'End fast' : 'Start fast';
+    $('toggle').classList.toggle('stop', !!a);
+    $('meta').hidden = $('edit-start').hidden = !a;
+    if (a) {
+      $('meta-start').textContent = when(a.start);
+      $('meta-end').textContent = when(a.start + a.goalHours * HOUR);
+    }
+    tick();
+  }
+
+  $('toggle').addEventListener('click', () => {
+    if (!state.active) {
+      state.active = { start: Date.now(), goalHours: state.goalHours };
+    } else {
+      const { start, goalHours } = state.active;
+      const end = Date.now();
+      // Ignore accidental taps: a fast under a minute isn't worth recording.
+      if (end - start >= 60e3) state.history.push({ id: crypto.randomUUID?.() ?? String(end), start, end, goalHours });
+      else if (!confirm('This fast is under a minute and won\'t be saved. End it anyway?')) return;
+      state.active = null;
+    }
+    save(); renderAll();
+  });
+
+  // ── Dashboard view ─────────────────────────────────────
+  const dur = f => f.end - f.start;
+  const hit = f => dur(f) >= f.goalHours * HOUR;
+
+  function streak(history) {
+    // Consecutive calendar days, ending today or yesterday, with at least one goal-reaching fast.
+    const days = new Set(history.filter(hit).map(f => startOfDay(f.end)));
+    let d = startOfDay(Date.now());
+    if (!days.has(d)) d = startOfDay(d - 1);
+    let n = 0;
+    while (days.has(d)) { n++; d = startOfDay(d - 1); }
+    return n;
+  }
+
+  function renderStats() {
+    const h = state.history, n = h.length;
+    $('st-count').textContent = n;
+    const s = streak(h);
+    $('st-streak').innerHTML = `${s}<small>${s === 1 ? 'day' : 'days'}</small>`;
+    $('st-avg').textContent = n ? hm(h.reduce((t, f) => t + dur(f), 0) / n) : '–';
+    $('st-long').textContent = n ? hm(Math.max(...h.map(dur))) : '–';
+    $('st-rate').textContent = n ? Math.round(100 * h.filter(hit).length / n) + '%' : '–';
+    // Hours fasted in the last 7 days, clipping fasts that straddle the window.
+    const from = Date.now() - 7 * DAY;
+    const week = h.reduce((t, f) => t + Math.max(0, f.end - Math.max(f.start, from)), 0);
+    $('st-week').innerHTML = `${Math.round(week / HOUR)}<small>h</small>`;
+  }
+
+  function renderChart() {
+    const svg = $('chart'), W = 320, H = 160, top = 8, bottom = 22, left = 26;
+    const today = startOfDay(Date.now());
+    const days = Array.from({ length: 7 }, (_, i) => startOfDay(today - (6 - i) * DAY + 12 * HOUR));
+    // Longest fast ending on each day.
+    const best = days.map(d => {
+      const fs = state.history.filter(f => startOfDay(f.end) === d);
+      return fs.length ? fs.reduce((a, b) => dur(a) >= dur(b) ? a : b) : null;
+    });
+    const maxH = Math.max(24, ...best.map(f => f ? Math.ceil(dur(f) / HOUR) : 0));
+    const y = hrs => top + (H - top - bottom) * (1 - hrs / maxH);
+    const slot = (W - left) / 7, bw = Math.min(28, slot * 0.6);
+    let out = '';
+    for (const t of [0, 12, 24].filter(t => t <= maxH)) {
+      out += `<text class="axis" x="${left - 6}" y="${y(t) + 4}" text-anchor="end">${t}</text>`;
+    }
+    out += `<line class="goal-line" x1="${left}" x2="${W}" y1="${y(state.goalHours)}" y2="${y(state.goalHours)}"/>`;
+    days.forEach((d, i) => {
+      const cx = left + slot * i + slot / 2, f = best[i];
+      if (f) {
+        const hrs = dur(f) / HOUR;
+        out += `<rect class="bar${hit(f) ? ' hit' : ''}" x="${cx - bw / 2}" y="${y(hrs)}" width="${bw}" height="${Math.max(2, y(0) - y(hrs))}" rx="4"><title>${hm(dur(f))}</title></rect>`;
+      }
+      const label = new Intl.DateTimeFormat(undefined, { weekday: 'narrow' }).format(d);
+      out += `<text class="axis" x="${cx}" y="${H - 4}" text-anchor="middle"${d === today ? ' style="font-weight:700"' : ''}>${label}</text>`;
+    });
+    svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+    svg.innerHTML = out;
+  }
+
+  function renderList() {
+    const items = [...state.history].sort((a, b) => b.start - a.start);
+    $('list').innerHTML = items.length ? items.map(f => `
+      <button class="row" data-id="${f.id}">
+        <span class="dot${hit(f) ? ' hit' : ''}"></span>
+        <span class="main"><div class="t">${when(f.start)}</div><div class="s">${f.goalHours}h goal · ended ${timeFmt.format(f.end)}</div></span>
+        <span class="d num">${hm(dur(f))}</span>
+      </button>`).join('')
+      : '<div class="empty">No fasts yet. Start one from the Timer tab.</div>';
+  }
+  $('list').addEventListener('click', e => {
+    const row = e.target.closest('.row'); if (row) openSheet(row.dataset.id);
+  });
+
+  // ── Edit sheet ─────────────────────────────────────────
+  // Editing matters: people forget to tap Start, so the record must be fixable.
+  let editing = null; // 'active' | history id
+  function openSheet(id) {
+    editing = id;
+    const isActive = id === 'active';
+    const f = isActive ? state.active : state.history.find(x => x.id === id);
+    if (!f) return;
+    $('sheet-title').textContent = isActive ? 'Edit start time' : 'Edit fast';
+    $('f-start').value = toInput(f.start);
+    $('f-end-wrap').hidden = isActive;
+    $('f-end').required = !isActive;
+    if (!isActive) $('f-end').value = toInput(f.end);
+    $('f-delete').hidden = isActive;
+    $('f-err').textContent = '';
+    $('sheet').showModal();
+  }
+  $('edit-start').addEventListener('click', () => openSheet('active'));
+  $('f-cancel').addEventListener('click', () => $('sheet').close());
+  $('f-delete').addEventListener('click', () => {
+    if (!confirm('Delete this fast?')) return;
+    state.history = state.history.filter(f => f.id !== editing);
+    save(); $('sheet').close(); renderAll();
+  });
+  $('sheet-form').addEventListener('submit', e => {
+    e.preventDefault();
+    const start = fromInput($('f-start').value), now = Date.now();
+    const err = msg => { $('f-err').textContent = msg; };
+    if (start == null) return err('Enter a valid start time.');
+    if (start > now) return err('Start time can\'t be in the future.');
+    if (editing === 'active') {
+      state.active.start = start;
+    } else {
+      const end = fromInput($('f-end').value);
+      if (end == null) return err('Enter a valid end time.');
+      if (end > now) return err('End time can\'t be in the future.');
+      if (end <= start) return err('End must be after start.');
+      Object.assign(state.history.find(f => f.id === editing), { start, end });
+    }
+    save(); $('sheet').close(); renderAll();
+  });
+
+  // ── Backup ─────────────────────────────────────────────
+  // Data only lives on this phone; export is the safety net.
+  $('export').addEventListener('click', async () => {
+    const json = JSON.stringify(state, null, 2);
+    const name = `fasts-${toInput(Date.now()).slice(0, 10)}.json`;
+    const file = new File([json], name, { type: 'application/json' });
+    if (navigator.canShare?.({ files: [file] })) {
+      try { await navigator.share({ files: [file] }); return; } catch (e) { if (e.name === 'AbortError') return; }
+    }
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(file); a.download = name; a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  });
+  $('import').addEventListener('click', () => $('import-file').click());
+  $('import-file').addEventListener('change', async e => {
+    const file = e.target.files[0]; e.target.value = '';
+    if (!file) return;
+    try {
+      const data = JSON.parse(await file.text());
+      const valid = data && Array.isArray(data.history) && data.history.every(f =>
+        f && typeof f.id === 'string' && Number.isFinite(f.start) && Number.isFinite(f.end) && Number.isFinite(f.goalHours) && f.end > f.start);
+      if (!valid) throw new Error('not a Fast Tracker backup');
+      if (!confirm(`Replace your current data with ${data.history.length} fasts from this backup?`)) return;
+      state = { goalHours: data.goalHours ?? 16, active: data.active ?? null, history: data.history };
+      save(); renderAll();
+    } catch (err) { alert('Import failed: ' + err.message); }
+  });
+
+  // ── Navigation ─────────────────────────────────────────
+  document.querySelector('nav').addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    document.querySelectorAll('nav button').forEach(x => x.classList.toggle('active', x === b));
+    document.querySelectorAll('.view').forEach(v => { v.hidden = v.id !== 'view-' + b.dataset.view; });
+    window.scrollTo(0, 0);
+  });
+
+  function renderAll() { renderTimer(); renderStats(); renderChart(); renderList(); }
+  renderAll();
+  // Elapsed time is always derived from the stored start, so the timer stays
+  // correct after the phone sleeps or the app is closed.
+  setInterval(tick, 1000);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) renderAll(); });
+
+  if ('serviceWorker' in navigator && location.protocol === 'https:') {
+    navigator.serviceWorker.register('sw.js');
+  }
+})();
+</script>
+</body>
+</html>
